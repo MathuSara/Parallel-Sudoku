@@ -1,8 +1,12 @@
 #include "SudokuBoard.hpp"
 #include "SudokuTest.hpp"
 #include "SudokuSolver.hpp"
+#include "SudokuSolver_SequentialBacktracking.hpp"
 #include "SudokuSolver_SequentialBruteForce.hpp"
 #include "SudokuSolver_ParallelBruteForce.hpp"
+#include "SudokuSolver_SequentialDLX.hpp"
+#include "SudokuSolver_ParallelDLX.hpp"
+#include "SudokuSolver_SequentialForwardChecking.hpp"
 
 #include "termcolor.hpp"
 
@@ -19,13 +23,23 @@ std::unique_ptr<SudokuSolver> CreateSudokuSolver(MODES mode, SudokuBoard& board)
 {
     switch (mode)
     {
-        
+        case MODES::SEQUENTIAL_BACKTRACKING:
+            return std::make_unique<SudokuSolver_SequentialBacktracking>(board);
+
         case MODES::SEQUENTIAL_BRUTEFORCE:
             return std::make_unique<SudokuSolver_SequentialBruteForce>(board);
 
 		case MODES::PARALLEL_BRUTEFORCE:
             return std::make_unique<SudokuSolver_ParallelBruteForce>(board);
 
+		case MODES::SEQUENTIAL_DANCINGLINKS:
+            return std::make_unique<SudokuSolver_SequentialDLX>(board);
+
+		case MODES::PARALLEL_DANCINGLINKS:
+            return std::make_unique<SudokuSolver_ParallelDLX>(board);
+
+		case MODES::SEQUENTIAL_FORWARDCHECKING:
+            return std::make_unique<SudokuSolver_SequentialForwardChecking>(board);
 
 		default:
 			std::cerr << termcolor::red << "Available options for <MODE>: " << "\n";
@@ -46,9 +60,15 @@ int main(int argc, char** argv)
 	std::cout
 	<< "\n"
 	<< R"(
-SUDOKU SOLVER
+███████╗██╗   ██╗██████╗  ██████╗ ██╗  ██╗██╗   ██╗    ███████╗ ██████╗ ██╗    ██╗   ██╗███████╗██████╗ 
+██╔════╝██║   ██║██╔══██╗██╔═══██╗██║ ██╔╝██║   ██║    ██╔════╝██╔═══██╗██║    ██║   ██║██╔════╝██╔══██╗
+███████╗██║   ██║██║  ██║██║   ██║█████╔╝ ██║   ██║    ███████╗██║   ██║██║    ██║   ██║█████╗  ██████╔╝
+╚════██║██║   ██║██║  ██║██║   ██║██╔═██╗ ██║   ██║    ╚════██║██║   ██║██║    ╚██╗ ██╔╝██╔══╝  ██╔══██╗
+███████║╚██████╔╝██████╔╝╚██████╔╝██║  ██╗╚██████╔╝    ███████║╚██████╔╝███████╗╚████╔╝ ███████╗██║  ██║
+╚══════╝ ╚═════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝ ╚═════╝     ╚══════╝ ╚═════╝ ╚══════╝ ╚═══╝  ╚══════╝╚═╝  ╚═╝
 	)"
 	<< "\n"
+	<< "developed by Hua-Ming Huang (version: " << VERSION << ")"
 	<< "\n\n\n";
 	
 	// validate command-line arguments
@@ -56,8 +76,12 @@ SUDOKU SOLVER
 	{
 		std::cerr << termcolor::red << "Usage: " << argv[0] << " <PATH_TO_INPUT_FILE> <MODE> [<NUM_THREADS>] [<WRITE_TO_SOLUTION_TXT>]" << "\n";
 		std::cerr << "		1. <MODE>: " << "\n";
+		std::cerr << "			- 0: sequential mode with backtracking algorithm" << "\n";
 		std::cerr << "			- 1: sequential mode with brute force algorithm" << "\n";
 		std::cerr << "			- 2: parallel mode with brute force algorithm" << "\n";
+		std::cerr << "			- 3: sequential mode with DLX algorithm" << "\n";
+		std::cerr << "			- 4: parallel mode with DLX algorithm" << "\n";
+		std::cerr << "			- 5: sequential mode with forward checking algorithm" << "\n";
 		std::cerr << "		2. <NUM_THREADS>: " << "\n";
 		std::cerr << "			If you set 2 or 4 for <MODE>, you need to also set <NUM_THREADS> (default = 2)" << "\n";
 		std::cerr << "		3. <WRITE_TO_SOLUTION_TXT>: " << "\n";
@@ -74,7 +98,7 @@ SUDOKU SOLVER
 
 	int NUM_THREADS = 2;
 	int WRITE_TO_SOLUTION_TXT = 0;
-	if (mode == MODES::PARALLEL_BRUTEFORCE )
+	if (mode == MODES::PARALLEL_BRUTEFORCE || mode == MODES::PARALLEL_DANCINGLINKS)
 	{
 		NUM_THREADS = (argc >= 4) ? std::stoi(argv[3]) : 2;
 		WRITE_TO_SOLUTION_TXT = (argc >= 5) ? std::stoi(argv[4]) : 0;
@@ -97,7 +121,7 @@ SUDOKU SOLVER
 
 
 	auto solver = CreateSudokuSolver(mode, board);
-	if (mode == MODES::PARALLEL_BRUTEFORCE )
+	if (mode == MODES::PARALLEL_BRUTEFORCE || mode == MODES::PARALLEL_DANCINGLINKS)
 	{
 		omp_set_num_threads(NUM_THREADS);
 		
